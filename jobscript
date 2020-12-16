@@ -1,0 +1,13 @@
+#!/bin/bash 
+#SBATCH -t 5-00:00:00 
+#SBATCH -p fat 
+#SBATCH -N 1 --ntasks-per-node=2
+#SBATCH --job-name rhoall2004SON
+#SBATCH --output rhoall2004SON
+#SBATCH --mail-type=begin 
+#SBATCH --mail-type=end 
+#SBATCH --mail-type=fail 
+#SBATCH --mail-user=d.m.a.lobelle@uu.nl 
+echo 'Initiating global run  SON 2004...'
+srun python global_Kooi+NEMO_3D.py -loc='global' -mon='09' -yr='2004'
+echo 'Finished computation.'
