@@ -228,8 +228,15 @@ def Profiles(particle, fieldset, time):
     particle.d_phy= fieldset.d_phy[time, particle.depth,particle.lat,particle.lon]  
     particle.nd_phy= fieldset.nd_phy[time, particle.depth,particle.lat,particle.lon] 
     particle.tpp3 = fieldset.tpp3[time,particle.depth,particle.lat,particle.lon]
-    particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
-    particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
+    
+    mu_w = 4.2844E-5 + (1/((0.157*(particle.temp + 64.993)**2)-91.296))
+    A = 1.541 + 1.998E-2*particle.temp - 9.52E-5*particle.temp**2
+    B = 7.974 - 7.561E-2*particle.temp + 4.724E-4*particle.temp**2
+    S_sw = fieldset.abs_salinity[time, particle.depth, particle.lat, particle.lon]
+    particle.sw_visc = mu_w*(1 + A*S_sw + B*S_sw**2)
+    particle.kin_visc = particle.sw_visc/particle.density
+    #particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
+    #particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
     #particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
     
 """ Defining the particle class """
@@ -374,10 +381,10 @@ if __name__ == "__main__":
     with open('/home/dlobelle/Kooi_data/data_input/profiles.pickle', 'rb') as f:
         depth,T_z,S_z,rho_z,upsilon_z,mu_z = pickle.load(f)
 
-    KV = Field('KV', np.array(upsilon_z), lon=0, lat=0, depth=depths, mesh='spherical') #np.empty(1)
-    SV = Field('SV', np.array(mu_z), lon=0, lat=0, depth=depths, mesh='spherical')
-    fieldset.add_field(KV, 'KV')
-    fieldset.add_field(SV, 'SV')
+#    KV = Field('KV', np.array(upsilon_z), lon=0, lat=0, depth=depths, mesh='spherical') #np.empty(1)
+#    SV = Field('SV', np.array(mu_z), lon=0, lat=0, depth=depths, mesh='spherical')
+#    fieldset.add_field(KV, 'KV')
+#    fieldset.add_field(SV, 'SV')
     
     
     """ Defining the particle set """   
