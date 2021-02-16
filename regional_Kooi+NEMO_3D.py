@@ -22,9 +22,9 @@ from argparse import ArgumentParser
 warnings.filterwarnings("ignore")
 
 #------ Choose ------:
-simdays = 90 #20
-secsdt = 30 #60 
-hrsoutdt = 12 #2
+simdays = 90 
+secsdt = 30  
+hrsoutdt = 12 
 
 """functions and kernels"""
 
@@ -121,11 +121,6 @@ def Kooi(particle,fieldset,time):
         w = 10.**(-3.76715 + (1.92944*math.log10(dstar)) - (0.09815*math.log10(dstar)**2.) - (0.00575*math.log10(dstar)**3.) + (0.00056*math.log10(dstar)**4.))
     
     #------ Settling of particle -----
-#     if z >= 4000.: 
-#         vs = 0 
-#     elif z<=0.6 and delta_rho < 0:# for rising particles above 0.6 m (negative delta_rho = rho_tot < rho_sw)
-#         vs = 0
-#         particle.depth = 0.6
     if delta_rho > 0: # sinks 
         vs = (g * kin_visc * w * delta_rho)**(1./3.)
     else: #rises 
@@ -144,11 +139,6 @@ def Kooi(particle,fieldset,time):
     particle.vs = vs
     particle.rho_tot = rho_tot
     particle.r_tot = r_tot
-#     particle.t_bf = t_bf
-#     particle.beta_a = beta_a
-#     particle.beta_abrown = beta_abrown
-#     particle.beta_ashear = beta_ashear
-#     particle.beta_aset = beta_aset
     particle.delta_rho = delta_rho
 
 def Kooi_no_biofouling(particle,fieldset,time):  
@@ -230,22 +220,22 @@ def Profiles(particle, fieldset, time):
     particle.tpp3 = fieldset.tpp3[time,particle.depth,particle.lat,particle.lon]
     particle.kin_visc = fieldset.KV[time,particle.depth,particle.lat,particle.lon] 
     particle.sw_visc = fieldset.SV[time,particle.depth,particle.lat,particle.lon] 
-    #particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
+    particle.w = fieldset.W[time,particle.depth,particle.lat,particle.lon]
     
 """ Defining the particle class """
 
-class plastic_particle(JITParticle): #ScipyParticle): #
+class plastic_particle(JITParticle): #ScipyParticle): #  
     u = Variable('u', dtype=np.float32,to_write=True)
     v = Variable('v', dtype=np.float32,to_write=True)
     w = Variable('w', dtype=np.float32,to_write=True)
-    temp = Variable('temp',dtype=np.float32,to_write=False)
+    temp = Variable('temp',dtype=np.float32,to_write=True)
     density = Variable('density',dtype=np.float32,to_write=True)
-    tpp3 = Variable('tpp3',dtype=np.float32,to_write=False)
-    d_phy = Variable('d_phy',dtype=np.float32,to_write=False)
-    nd_phy = Variable('nd_phy',dtype=np.float32,to_write=False)
-    a = Variable('a',dtype=np.float32,to_write=False)
-    kin_visc = Variable('kin_visc',dtype=np.float32,to_write=False)
-    sw_visc = Variable('sw_visc',dtype=np.float32,to_write=False)
+    tpp3 = Variable('tpp3',dtype=np.float32,to_write=True)
+    d_phy = Variable('d_phy',dtype=np.float32,to_write=True)
+    nd_phy = Variable('nd_phy',dtype=np.float32,to_write=True)
+    a = Variable('a',dtype=np.float32,to_write=True)
+    kin_visc = Variable('kin_visc',dtype=np.float32,to_write=True)
+    sw_visc = Variable('sw_visc',dtype=np.float32,to_write=True)
     vs = Variable('vs',dtype=np.float32,to_write=True) 
     rho_tot = Variable('rho_tot',dtype=np.float32,to_write=True) 
     r_tot = Variable('r_tot',dtype=np.float32,to_write=True)
@@ -260,7 +250,7 @@ if __name__ == "__main__":
                    help='start month for the run')
     p.add_argument('-yr', choices = ('2000','2001','2002','2003','2004','2005','2006','2007','2008','2009','2010'), action="store", dest="yr",
                    help='start year for the run')
-    p.add_argument('-region', choices = ('GPGP','EqPac'), action = "store", dest = "region",
+    p.add_argument('-region', choices = ('NPSG','EqPac'), action = "store", dest = "region",
                    help ='region where particles released')
     p.add_argument('-no_biofouling', choices =('True','False'), action="store", dest="no_biofouling", help='True if using Kooi kernel without biofouling')   
     p.add_argument('-no_advection', choices =('True','False'), action="store", dest="no_advection", help='True if removing advection_RK43D kernel')
@@ -271,12 +261,9 @@ if __name__ == "__main__":
     region = args.region
     no_biofouling = args.no_biofouling
     no_advection = args.no_advection
-    
-    """ Load particle release locations from plot_NEMO_landmask.ipynb """
-    # CHOOSE
 
     #------ Fieldset grid  ------
-    if region == 'GPGP':
+    if region == 'NPSG':
         minlat = 20 
         maxlat = 45 
         minlon = 110 # -180 #75 
@@ -289,7 +276,7 @@ if __name__ == "__main__":
 
 
     #------ Release particles on a 10x10 deg grid ------
-    if region == 'GPGP':
+    if region == 'NPSG':
         lat_release0 = np.tile(np.linspace(28,36,5),[5,1]) #(20,28,5),[5,1]) 
         lat_release = lat_release0.T 
         lon_release = np.tile(np.linspace(-135,-143,5),[5,1]) #(-140,-148,5),[5,1]) 
@@ -382,14 +369,14 @@ if __name__ == "__main__":
     
     """ Defining the particle set """   
     
-    rho_pls = [30, 30, 30, 30, 30, 840, 840, 840, 840, 840, 920, 920, 920, 920, 920]  # add/remove here if more needed
-    r_pls = [1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]  # add/remove here if more needed
+    rho_pls = [30, 30, 30, 30, 30, 840, 840, 840, 840, 840,920,920,920,920,920] #add/remove here if more needed
+    r_pls = [1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7,1e-3, 1e-4, 1e-5, 1e-6, 1e-7] #add/remove here if more needed
 
     pset = ParticleSet.from_list(fieldset=fieldset,         # the fields on which the particles are advected
                                  pclass=plastic_particle,   # the type of particles (JITParticle or ScipyParticle)
                                  lon= lon_release, #-160.,  # a vector of release longitudes 
                                  lat= lat_release, #36., 
-                                 time = np.datetime64('%s-%s-01' % (yr0, mon)),
+                                 time = np.datetime64('%s-%s-05' % (yr0, mon)),
                                  depth = z_release,
                                  r_pl = r_pls[0] * np.ones(np.array(lon_release).size),
                                  rho_pl = rho_pls[0] * np.ones(np.array(lon_release).size),
@@ -401,7 +388,7 @@ if __name__ == "__main__":
                                  pclass=plastic_particle,   # the type of particles (JITParticle or ScipyParticle)
                                  lon= lon_release, #-160.,  # a vector of release longitudes 
                                  lat= lat_release, #36., 
-                                 time = np.datetime64('%s-%s-01' % (yr0, mon)),
+                                 time = np.datetime64('%s-%s-05' % (yr0, mon)),
                                  depth = z_release,
                                  r_pl = r_pl * np.ones(np.array(lon_release).size),
                                  rho_pl = rho_pl * np.ones(np.array(lon_release).size),
@@ -419,7 +406,10 @@ if __name__ == "__main__":
     elif mon=='09':
         s = 'SON'
     
-    if no_biofouling == 'True':
+    if no_advection == 'True' and no_biofouling == 'True':
+        kernels = pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi_no_biofouling)
+        proc = 'noadvnobf'
+    elif no_biofouling == 'True':
         kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(Profiles) + pset.Kernel(Kooi_no_biofouling)
         proc = 'nobf'
     elif no_advection == 'True':
